@@ -3,6 +3,17 @@ import $ from 'cheerio';
 
 class URLScraper extends React.Component {
   state = { urlContent: "", url: "https://pandora.com", urlLoading: false };
+
+  getCols = () => {
+    const img = document.getElementById("favicon");
+    console.log('this is the image', img)
+    var vibrant = new Vibrant(img);
+    var swatches = vibrant.swatches();
+    for (var swatch in swatches)
+      if (swatches.hasOwnProperty(swatch) && swatches[swatch])
+        console.log(swatch, swatches[swatch].getHex());
+  };
+
   scrapeURL = e => {
     // SHOULD something oEmbed if it is any of the common sites (facebook, youtube, github etc.)
     e.preventDefault();
