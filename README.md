@@ -1,8 +1,14 @@
 This project was bootstrapped with [Create React App](https://github.com/facebookincubator/create-react-app).
 
-## ReactURLSraper
+## React URL Sraper
 
-* Uses `fetch-cheerio-object` to (as an alternative to fetch, then getting the text response)
+No more ugly URL's. 
+
+* If the domain doesn't exist, it will just set the domain name
+* It accounts for "http", "https", and "www" prefixes
+* This will fetch the `<title>` attribute.
+* Can be configured to get _any_ attribute you want
+* Uses `cheerio`
 
 ## Get started
 
