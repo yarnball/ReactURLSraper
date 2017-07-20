@@ -1,31 +1,42 @@
-import React from 'react';
-import $ from 'cheerio';
+import React from "react";
+import $ from "cheerio";
 
-class URLScraper extends React.Component {
-  state = { urlContent: "", url: "https://pandora.com", urlLoading: false };
-
-  getCols = () => {
-    const img = document.getElementById("favicon");
-    console.log('this is the image', img)
-    var vibrant = new Vibrant(img);
-    var swatches = vibrant.swatches();
-    for (var swatch in swatches)
-      if (swatches.hasOwnProperty(swatch) && swatches[swatch])
-        console.log(swatch, swatches[swatch].getHex());
+class LinkEmbed extends React.Component {
+  state = {
+    urlContent: "",
+    url: "http://gigst.com",
+    urlLoading: false,
+    favicon: "",
+    color: ""
   };
 
+  matchCols = () => {
+    const test = setTimeout(() => {
+      if (document.getElementById("favicon")) {
+        clearInterval(test);
+
+        try {
+          const img = document.getElementById("favicon");
+          var vibrant = new window.Vibrant(img);
+          var swatches = vibrant.swatches();
+          for (var swatch in swatches)
+            if (swatches.hasOwnProperty(swatch) && swatches[swatch])
+              this.setState({
+                color: (swatch, swatches[swatch].getHex())
+              });
+        } catch (e) {
+          console.log(e instanceof TypeError, "Favicon TypeError"); // true
+          this.setState({
+            favicon:
+              "https://crossorigin.me/https://www.google.com/s2/favicons?domain=www.nodejs.org"
+          });
+        }
+      }
+    }, 10);
+  };
   scrapeURL = e => {
-    // SHOULD something oEmbed if it is any of the common sites (facebook, youtube, github etc.)
     e.preventDefault();
     const { url } = this.state;
-    this.setState({
-      urlLoading: true,
-      rootURL:
-        "https://www.google.com/s2/favicons?domain=" +
-        url.split("/")[0] +
-        "//" +
-        url.split("/")[2]
-    });
     var urlDom = url
       .split("www.")
       .pop()
@@ -35,22 +46,48 @@ class URLScraper extends React.Component {
       .pop();
     urlDom = urlDom.charAt(0).toUpperCase() + urlDom.slice(1);
     this.setState({
+      color: "",
+      favicon: "",
+      urlLoading: true,
       urlContent: urlDom
     });
+    fetch(
+      "https://crossorigin.me/https://www.google.com/s2/favicons?domain=" +
+        urlDom
+    )
+      .then(response => {
+        if (response.ok) {
+          return response.blob();
+        } else {
+          throw new Error("No title attribute");
+        }
+      })
+      .then(imageBlob => {
+        if (imageBlob.size > 10) {
+          // CATCH THE MAP TypeError at- this fixes issue when a Favicon broken
+          this.setState({ favicon: URL.createObjectURL(imageBlob) });
+          this.matchCols();
+        } else {
+          console.log("No image");
+        }
+      })
+      .catch(error => {
+        console.log(error);
+      });
     fetch("https://crossorigin.me/" + this.state.url)
-      // crossorigin.me is NOT reliable. Consider other/using own server. Necessary to avoid CORS erros.
+      // crossorigin.me is necessary to avoid CORS issues.
       .then(response => {
         if (response.ok) {
           return response.text();
         } else {
-          throw new Error("No response from URL");
+          throw new Error("Link didn't work");
         }
       })
       .then(text => {
         if ($.load(text)("title").first().text()) {
           this.setState({
-            urlLoading: false,
-            urlContent: $.load(text)("title").first().text()
+            urlContent: $.load(text)("title").first().text(),
+            urlLoading: false
           });
         } else {
           throw new Error("No title attribute");
@@ -63,8 +100,7 @@ class URLScraper extends React.Component {
   };
 
   render() {
-    console.log(this.state.urlLoading);
-    const { urlContent, url, urlLoading } = this.state;
+    const { urlContent, url, urlLoading, favicon } = this.state;
     return (
       <span className="linkResult">
         <input
@@ -72,18 +108,36 @@ class URLScraper extends React.Component {
           onChange={e => this.setState({ url: e.target.value })}
           placeholder="Give me a URL"
         />
-
-        <button onClick={this.scrapeURL}> check </button>
+        <span className={urlLoading ? "loading" : ""}>
+          <button type="button" onClick={this.scrapeURL}>
+            {" "}{urlLoading ? "loading..." : "Get URL"}{" "}
+          </button>
+        </span>
         <br />
         {urlContent &&
           <div>
-            <a href={url} target="_blank" rel="noopener noreferrer">
-              <img
-                className={urlLoading ? "loadingUrl" : ""}
-                alt="noidea"
-                height="15px"
-                src={this.state.rootURL}
-              />
+            <a
+              style={{ color: this.state.color }}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {favicon
+                ? <img
+                    crossOrigin="anonymous"
+                    id="favicon"
+                    className={urlLoading ? "loadingUrl" : ""}
+                    alt={urlContent}
+                    height="15px"
+                    src={favicon}
+                  />
+                : <img
+                    id="faviconTemp"
+                    className={urlLoading ? "loadingUrl" : ""}
+                    alt="noidea"
+                    height="15px"
+                    src="https://www.google.com/s2/favicons?domain=www.nodejs.org"
+                  />}{" "}
               {urlContent}
             </a>
           </div>}
@@ -92,4 +146,4 @@ class URLScraper extends React.Component {
   }
 }
 
-export default URLScraper;
+export default LinkEmbed;
